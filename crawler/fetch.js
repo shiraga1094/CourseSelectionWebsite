@@ -66,6 +66,7 @@ async function safeGet(client, url, params) {
 
 export async function fetchAll(year, term) {
   const client = await createClient();
+  console.log(`  → 正在獲取科系列表...`);
 
   // 1) 科系列表（照 Python）
   const deptRes = await safeGet(client, DEPT_API, {
@@ -74,18 +75,26 @@ export async function fetchAll(year, term) {
   });
   const deptList = deptRes ? JSON.parse(deptRes.data.replace(/'/g,'"')) : [];
   const depts = deptList.map(d => d[0]);
+  const deptNames = Object.fromEntries(deptList);
+  
+  console.log(`  → 找到 ${depts.length} 個科系`);
 
   const all = [];
 
   // 2) 逐系抓（GU 拆 core）
-  for (const dept of depts) {
+  for (let i = 0; i < depts.length; i++) {
+    const dept = depts[i];
+    const deptName = deptNames[dept] || dept;
+    
     if (dept === "GU") {
+      console.log(`  → [${i+1}/${depts.length}] 抓取 ${deptName} (通識)`);
       for (const core of GU_CORE) {
         const p = baseParams(year, term, "GU");
         p.kind = 3;
         p.generalCore = core;
         const r = await safeGet(client, API, p);
         if (r?.data?.List) {
+          console.log(`     · ${core}: ${r.data.List.length} 門課程`);
           for (const c of r.data.List) {
             c.generalCore = c.generalCore ? `${c.generalCore}/${core}` : core;
             all.push(c);
@@ -94,11 +103,17 @@ export async function fetchAll(year, term) {
       }
     } else {
       const r = await safeGet(client, API, baseParams(year, term, dept));
-      if (r?.data?.List) all.push(...r.data.List);
+      if (r?.data?.List) {
+        console.log(`  → [${i+1}/${depts.length}] ${deptName}: ${r.data.List.length} 門課程`);
+        all.push(...r.data.List);
+      } else {
+        console.log(`  → [${i+1}/${depts.length}] ${deptName}: 無資料`);
+      }
     }
   }
 
   // 3) 去重（Python 同樣邏輯）
+  console.log(`  → 去除重複課程... (原始: ${all.length} 門)`);
   const seen = new Set();
   const uniq = [];
   for (const c of all) {
@@ -107,10 +122,17 @@ export async function fetchAll(year, term) {
     seen.add(key);
     uniq.push(c);
   }
+  console.log(`  → 去重後: ${uniq.length} 門課程`);
 
   // 4) 補通識核心 & 密集課程（逐門慢慢補）
   const denseMap = {};
-  for (const c of uniq) {
+  let guCoreCount = 0;
+  let denseCount = 0;
+  
+  console.log(`  → 補充課程詳細資訊...`);
+  for (let i = 0; i < uniq.length; i++) {
+    const c = uniq[i];
+    
     if (c.option_code === "通" && !c.generalCore) {
       const r = await safeGet(client, GU_API, {
         _dc: Date.now(), action: "show",
@@ -120,7 +142,10 @@ export async function fetchAll(year, term) {
         formS: c.form_s || "", aClass: c.classes || "", language: "chinese"
       });
       const m = /109以後入學：([^<]+)/.exec(r?.data?.msg || "");
-      if (m && GU_MAP[m[1].trim()]) c.generalCore = GU_MAP[m[1].trim()];
+      if (m && GU_MAP[m[1].trim()]) {
+        c.generalCore = GU_MAP[m[1].trim()];
+        guCoreCount++;
+      }
     }
 
     if ((c.time_inf || "").includes("密集課程")) {
@@ -132,8 +157,17 @@ export async function fetchAll(year, term) {
         formS: c.form_s || "", aClass: c.classes || "", language: "chinese"
       });
       denseMap[`${c.course_code}-${c.course_group}`] = r?.data?.msg || "";
+      denseCount++;
+    }
+    
+    // 每100門課顯示進度
+    if ((i + 1) % 100 === 0) {
+      console.log(`     · 已處理 ${i + 1}/${uniq.length} 門課程...`);
     }
   }
+  
+  if (guCoreCount > 0) console.log(`  → 補充通識核心: ${guCoreCount} 門`);
+  if (denseCount > 0) console.log(`  → 密集課程: ${denseCount} 門`);
 
   return { courses: uniq, denseMap };
 }

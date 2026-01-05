@@ -1,84 +1,180 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>課程查詢系統</title>
-<!-- 
-    CTF{y0u_w4st3d_y0ur_t1m3_h3r3_l0l}
--->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Course Planner</title>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 
-<div class="main-container">
-    <!-- 左側：課程搜尋 -->
-    <div class="left-panel">
-        <h2>課程查詢</h2>
-        
-        <div class="filter-container">
-            <input id="search" placeholder="輸入課名或代碼搜尋…" />
-            
-            <select id="filterDept">
-                <option value="">所有系所</option>
-            </select>
-            
-            <select id="filterReq">
-                <option value="">必/選修</option>
-                <option value="必">必修</option>
-                <option value="選">選修</option>
-            </select>
-            
-            <select id="filterDay">
-                <option value="">所有星期</option>
-                <option value="一">星期一</option>
-                <option value="二">星期二</option>
-                <option value="三">星期三</option>
-                <option value="四">星期四</option>
-                <option value="五">星期五</option>
-                <option value="六">星期六</option>
-                <option value="日">星期日</option>
-            </select>
-        </div>
-
-        <div id="result"></div>
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="term">
+      <span class="label">學期</span>
+      <select id="termSelect" class="select">
+        <option value="113-1">113-1</option>
+      </select>
     </div>
+  </div>
 
-    <!-- 中間：已選課程 -->
-    <div class="middle-panel">
-        <h2>儲藏區</h2>
-        
-        <!-- 衝突通知 -->
-        <div id="conflictNotice" class="conflict-notice" style="display: none;">
-            <span class="conflict-icon">⚠️</span>
-            <div class="conflict-text">
-                <strong>時間衝突</strong>
-                <p id="conflictMessage"></p>
+  <div class="topbar-right">
+    <button id="btnP1" class="btn btn-primary">P1 選課</button>
+    <button id="btnP2" class="btn">P2 課表</button>
+    <button id="themeToggle" class="btn btn-sm" title="切換亮/暗主題">🌙</button>
+  </div>
+</header>
+
+<main class="app">
+
+  <!-- P1 -->
+  <section id="pageP1" class="page active">
+    <div class="page-top">
+      <div class="search-row">
+        <input id="searchInput" class="input" placeholder="搜尋：課名 / 課碼 / 老師（支援關鍵字）" />
+      </div>
+      <div class="filter-row">
+        <select id="filterDept" class="select">
+          <option value="">所有系所</option>
+        </select>
+        <select id="filterCore" class="select">
+          <option value="">通識向度（若無可忽略）</option>
+        </select>
+        <select id="filterDay" class="select">
+          <option value="">所有星期</option>
+          <option value="一">星期一</option>
+          <option value="二">星期二</option>
+          <option value="三">星期三</option>
+          <option value="四">星期四</option>
+          <option value="五">星期五</option>
+          <option value="六">星期六</option>
+          <option value="日">星期日</option>
+        </select>
+        <div id="slotFilterInfo" class="tiny"> </div>
+        <select id="filterLocation" class="select">
+          <option value="">所有地點</option>
+        </select>
+        <select id="filterMode" class="select">
+          <option value="all">顯示：全部</option>
+          <option value="saved">只看已加入清單</option>
+          <option value="selected">只看已選課</option>
+        </select>
+
+        <div class="spacer"></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button id="slotFilterBtn" class="btn btn-sm">節次選擇</button>
+            <div class="tiny">
+              <span id="p1Count">0</span> 筆
             </div>
-            <button class="close-notice" onclick="closeConflictNotice()">✕</button>
+          </div>
+
+        <div class="tiny">
+          <span id="p1Count">0</span> 筆
         </div>
-        
-        <div class="selected-controls">
-            <button class="btn" id="clearBtn">清空</button>
-            <button class="btn" id="resetBtn" style="background: #ff9800;">重置</button>
-        </div>
-        <div id="selectedCourses"></div>
+      </div>
     </div>
 
-    <!-- 右側：課表 -->
-    <div class="right-panel">
-        <h2>我的課表</h2>
-        <div id="schedule" class="schedule-table"></div>
+    <div class="layout">
+      <section class="content">
+        <div id="resultList" class="cards"></div>
+
+        <div class="pager">
+          <button id="prevPage" class="btn btn-sm">上一頁</button>
+          <div id="pageInfo" class="pager-info">1 / 1</div>
+          <button id="nextPage" class="btn btn-sm">下一頁</button>
+        </div>
+      </section>
+
+      <aside class="rightbar">
+        <div class="panel-head">
+          <div class="panel-title">已選</div>
+          <div class="credit">
+            <span class="label">學分</span>
+            <span id="creditSum" class="credit-num">0</span>
+          </div>
+        </div>
+
+        <div id="conflictNotice" class="notice hidden">
+          <div class="notice-icon">⚠️</div>
+          <div class="notice-body">
+            <div class="notice-title">時間衝突</div>
+            <div id="conflictMessage" class="notice-text"></div>
+          </div>
+          <button id="closeNotice" class="btn btn-sm">✕</button>
+        </div>
+
+        <div class="right-actions">
+          <button id="btnClear" class="btn btn-sm">清空</button>
+          <button id="btnReset" class="btn btn-sm btn-warn">重置</button>
+        </div>
+
+        <div id="savedList" class="saved"></div>
+      </aside>
     </div>
+  </section>
+
+  <!-- P2 -->
+  <section id="pageP2" class="page">
+    <div class="page-top">
+      <div class="filter-row">
+          <button id="exportBtn" class="btn btn-primary">匯出課表</button>
+
+          <label class="toggle">
+            <input id="p2ShowConflict" type="checkbox" checked/>
+            <span>顯示衝突標示</span>
+          </label>
+
+          <div class="spacer"></div>
+          <div class="tiny">已選 <span id="p2SelectedCount">0</span> 門</div>
+        </div>
+    </div>
+
+    <div class="layout p2">
+      <section class="content">
+        <div id="scheduleWrap" class="schedule-wrap"></div>
+        <div id="sortedList" class="sorted hidden"></div>
+      </section>
+
+      <aside class="rightbar">
+        <div class="panel-head">
+          <div class="panel-title">已選</div>
+          <div class="credit">
+            <span class="label">學分</span>
+            <span id="creditSum2" class="credit-num">0</span>
+          </div>
+        </div>
+
+        <div class="filter-row" style="padding:0 12px 8px 12px;">
+          <select id="p2Sort" class="select" style="min-width:140px;">
+            <option value="time">排序：依星期/節次</option>
+            <option value="name">排序：依課名</option>
+            <option value="dept">排序：依系所</option>
+          </select>
+        </div>
+
+        <div class="right-actions">
+          <button id="btnClear2" class="btn btn-sm">清空</button>
+          <button id="btnReset2" class="btn btn-sm btn-warn">重置</button>
+        </div>
+
+        <div id="savedList2" class="saved"></div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<!-- Modal：dense 詳細 -->
+<div id="modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <div id="modalTitle" class="modal-title">詳細</div>
+      <button id="modalClose" class="btn btn-sm">✕</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+  </div>
 </div>
 
-<script src="js/dataLoader.js"></script>
-<script src="js/timeParser.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/courseManager.js"></script>
-<script src="js/conflictChecker.js"></script>
-<script src="js/renderer.js"></script>
-<script src="js/main.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
