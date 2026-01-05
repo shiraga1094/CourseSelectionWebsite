@@ -3,10 +3,14 @@ name: Weekly Crawler
 on:
   schedule:
     - cron: "0 16 * * 5"
-  workflow_dispatch: # 手動跑，建議保留
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   crawl:
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
@@ -23,3 +27,11 @@ jobs:
 
       - name: Run crawler
         run: node crawler/index.js
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "update data"
+          git push
