@@ -13,6 +13,19 @@ export function setActivePage(p){
   $("btnP2").classList.toggle("btn-primary", p==="P2");
   closeConflictNotice();
   renderAll();
+  
+  // Recalculate padding when switching pages
+  setTimeout(() => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const pageTop = document.querySelector(`#page${p} .page-top`);
+      const layout = document.querySelector(`#page${p} .layout`);
+      if (pageTop && layout) {
+        const height = pageTop.offsetHeight;
+        layout.style.paddingTop = (height + 20) + 'px';
+      }
+    }
+  }, 50);
 }
 
 export function openModal(title, html){

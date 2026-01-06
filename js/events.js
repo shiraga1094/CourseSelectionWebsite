@@ -10,12 +10,43 @@ import { parseTimeToSchedule, SLOT_TABLE } from './timeParser.js';
 // Export image settings
 const EXPORT_FIXED_WIDTH = 1200;
 
+// Dynamically adjust content padding based on fixed header heights
+function adjustContentPadding() {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    const pageTopP1 = document.querySelector('#pageP1 .page-top');
+    const pageTopP2 = document.querySelector('#pageP2 .page-top');
+    const layoutP1 = document.querySelector('#pageP1 .layout');
+    const layoutP2 = document.querySelector('#pageP2 .layout');
+    
+    if (pageTopP1 && layoutP1) {
+      const height = pageTopP1.offsetHeight;
+      layoutP1.style.paddingTop = (height + 20) + 'px';
+    }
+    
+    if (pageTopP2 && layoutP2) {
+      const height = pageTopP2.offsetHeight;
+      layoutP2.style.paddingTop = (height + 20) + 'px';
+    }
+  } else {
+    const layoutP1 = document.querySelector('#pageP1 .layout');
+    const layoutP2 = document.querySelector('#pageP2 .layout');
+    if (layoutP1) layoutP1.style.paddingTop = '';
+    if (layoutP2) layoutP2.style.paddingTop = '';
+  }
+}
+
 // Bind all UI event handlers
 export function bindEvents(){
   $("btnP1").onclick = ()=>setActivePage("P1");
   $("btnP2").onclick = ()=>setActivePage("P2");
 
   if ($("themeToggle")) $("themeToggle").addEventListener('click', ()=>toggleTheme());
+  
+  // Adjust padding on load and resize
+  window.addEventListener('resize', adjustContentPadding);
+  window.addEventListener('load', adjustContentPadding);
+  setTimeout(adjustContentPadding, 100);
 
   $("searchInput").addEventListener("input", ()=>{ state.page=1; renderP1(); });
   $("filterDept").addEventListener("change", ()=>{ state.activeDept = $("filterDept").value; state.page=1; renderP1(); });
@@ -36,6 +67,7 @@ export function bindEvents(){
       if (icon) {
         icon.textContent = isExpanded ? "▲" : "▼";
       }
+      setTimeout(adjustContentPadding, 300);
     };
   }
 
