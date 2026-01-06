@@ -20,17 +20,15 @@ function adjustContentPadding() {
     const layoutP2 = document.querySelector('#pageP2 .layout');
     
     if (pageTopP1 && layoutP1) {
-      const pageTopHeight = pageTopP1.offsetHeight;
-      const pageTopTopOffset = 54; // page-top's top position in CSS
-      const totalPadding = pageTopTopOffset + pageTopHeight + 10;
-      layoutP1.style.paddingTop = totalPadding + 'px';
+      const rect = pageTopP1.getBoundingClientRect();
+      const paddingNeeded = rect.top + rect.height;
+      layoutP1.style.paddingTop = paddingNeeded + 'px';
     }
     
     if (pageTopP2 && layoutP2) {
-      const pageTopHeight = pageTopP2.offsetHeight;
-      const pageTopTopOffset = 54;
-      const totalPadding = pageTopTopOffset + pageTopHeight + 10;
-      layoutP2.style.paddingTop = totalPadding + 'px';
+      const rect = pageTopP2.getBoundingClientRect();
+      const paddingNeeded = rect.top + rect.height;
+      layoutP2.style.paddingTop = paddingNeeded + 'px';
     }
   } else {
     const layoutP1 = document.querySelector('#pageP1 .layout');

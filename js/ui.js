@@ -21,10 +21,9 @@ export function setActivePage(p){
       const pageTop = document.querySelector(`#page${p} .page-top`);
       const layout = document.querySelector(`#page${p} .layout`);
       if (pageTop && layout) {
-        const pageTopHeight = pageTop.offsetHeight;
-        const pageTopTopOffset = 54;
-        const totalPadding = pageTopTopOffset + pageTopHeight + 10;
-        layout.style.paddingTop = totalPadding + 'px';
+        const rect = pageTop.getBoundingClientRect();
+        const paddingNeeded = rect.top + rect.height;
+        layout.style.paddingTop = paddingNeeded + 'px';
       }
     }
   }, 50);
