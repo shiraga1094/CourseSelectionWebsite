@@ -35,6 +35,14 @@ export function parseSlot(timeRaw) {
       if (/^\d+$/.test(start)) start = start.padStart(2,'0');
       if (/^\d+$/.test(end)) end = end.padStart(2,'0');
       results.push(`星期${day} 第 ${start}-${end} 節`);
+    } else {
+      m = seg.match(/([一二三四五六日])\s*(\d{1,2}|[A-D])/);
+      if (m) {
+        const day = m[1];
+        let slot = m[2];
+        if (/^\d+$/.test(slot)) slot = slot.padStart(2,'0');
+        results.push(`星期${day} 第 ${slot} 節`);
+      }
     }
   }
   return results.length > 0 ? results.join(', ') : timeRaw;
@@ -64,6 +72,18 @@ export function parseTimeToSchedule(timeRaw) {
         for (let i = si; i <= ei; i++) slots.push(all[i]);
         results.push({ day, slots });
       }
+    } else {
+      m = seg.match(/([一二三四五六日])\s*(\d{1,2}|[A-D])/);
+      if (m) {
+        const day = m[1];
+        let slot = m[2];
+        if (/^\d+$/.test(slot)) slot = slot.padStart(2,'0');
+        
+        const all = SLOT_TABLE.map(s => s.code);
+        if (all.includes(slot)) {
+          results.push({ day, slots: [slot] });
+        }
+      }
     }
   }
   
@@ -77,10 +97,16 @@ export function parseLocation(timeRaw){
   const locations = [];
   
   for (const seg of segments) {
-    const m = seg.match(/([一二三四五六日])\s*(?:\d{1,2}|[A-D])\s*[-－]\s*(?:\d{1,2}|[A-D])\s*(.+)/);
+    let m = seg.match(/([一二三四五六日])\s*(?:\d{1,2}|[A-D])\s*[-－]\s*(?:\d{1,2}|[A-D])\s*(.+)/);
     if (m && m[2]) {
       const loc = m[2].trim();
       if (!locations.includes(loc)) locations.push(loc);
+    } else {
+      m = seg.match(/([一二三四五六日])\s*(?:\d{1,2}|[A-D])\s+(.+)/);
+      if (m && m[2]) {
+        const loc = m[2].trim();
+        if (!locations.includes(loc)) locations.push(loc);
+      }
     }
   }
   
