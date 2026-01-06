@@ -1,1 +1,1 @@
-# CourseSelectionWebsite
+# CoursePlanner
